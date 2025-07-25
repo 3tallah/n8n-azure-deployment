@@ -36,7 +36,7 @@ cd n8n-azure-deployment
 chmod +x n8n_deployment_script.sh
 
 # Run the full deployment
-./n8n_deployment_script.sh
+bash deploy-n8n-azure.sh
 ````
 
 > ✅ The script includes everything: resource group, storage, App Service, OpenAI service, app settings, Outlook OAuth2 support, and auto-restart.
