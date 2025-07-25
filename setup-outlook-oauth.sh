@@ -1,6 +1,7 @@
 #!/bin/bash
 APP_NAME="n8n-outlook-$(date +%s)"
-N8N_CALLBACK_URL="https://your-n8n-instance.com/oauth2/callback"
+N8N_CALLBACK_URL="https://$APP_NAME.azurewebsites.net/oauth2/callback"  # Replace with your n8n callback URL
+ADMIN_CONSENT="false"  # Set to "true" if you have admin rights
 
 TENANT_ID=$(az account show --query tenantId -o tsv)
 APP_ID=$(az ad app create --display-name "$APP_NAME" --sign-in-audience "AzureADandPersonalMicrosoftAccount" --web-redirect-uris "$N8N_CALLBACK_URL" --query appId -o tsv)
