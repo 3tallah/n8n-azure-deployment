@@ -144,5 +144,3 @@ Distributed under the MIT License. See `LICENSE` for full details.
 
 * GitHub: [@3tallah](https://github.com/3tallah)
 * LinkedIn: [Mahmoud A. Atallah](https://www.linkedin.com/in/mahmoudatallah)
-
-```
