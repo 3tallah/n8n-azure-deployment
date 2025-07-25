@@ -26,10 +26,9 @@
 - Bash shell (Linux/macOS/WSL)
 
 ### Deployment
-```
-bash
+```bash
 # Clone repository
-git clone https://github.com/yourusername/n8n-azure-deployment.git
+git clone https://github.com/3tallah/n8n-azure-deployment.git
 cd n8n-azure-deployment
 
 # Make scripts executable
@@ -46,22 +45,20 @@ chmod +x *.sh
 
 ### Main Deployment Script
 `deploy-n8n-azure.sh` - Handles:
-```bash
 1. Resource group creation
 2. Storage account setup
 3. App Service configuration
 4. Azure OpenAI integration
 5. Environment variables setup
-```
+
 
 ### Outlook Integration
 `setup-outlook-oauth.sh` - Creates:
-```bash
 1. Azure AD app registration
 2. Outlook API permissions
 3. Client secret (valid 1 year)
 4. Admin consent URL
-```
+
 
 ### Support Files
 - `workflow-examples/` - Sample n8n JSON workflows
