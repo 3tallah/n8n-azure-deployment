@@ -29,7 +29,7 @@
 ```
 bash
 # Clone repository
-git clone https://github.com/yourusername/n8n-azure-deployment.git
+git clone https://github.com/3tallah/n8n-azure-deployment.git
 cd n8n-azure-deployment
 
 # Make scripts executable
