@@ -1,0 +1,98 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://graph.microsoft.com/v1.0/me/messages?$top=1",
+        "method": "GET",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.OUTLOOK_ACCESS_TOKEN}}"
+            }
+          ]
+        }
+      },
+      "name": "Get Latest Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "outlook-token",
+          "name": "OutlookToken"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "={{$env.AZURE_OPENAI_ENDPOINT}}/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-07-01-preview",
+        "method": "POST",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "api-key",
+              "value": "={{$env.AZURE_OPENAI_API_KEY}}"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersJson": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"You are a helpful assistant that summarizes emails.\"},\n    {\"role\": \"user\", \"content\": \"Summarize this email:\n\nSubject: {{$json['value'][0]['subject']}}\n\nBody: {{$json['value'][0]['body']['content']}}\"}\n  ],\n  \"temperature\": 0.7\n}"
+      },
+      "name": "Summarize with Azure OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [500, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "azure-openai-headers",
+          "name": "AzureOpenAIHeader"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "responseCode": 200
+      },
+      "name": "Return Summary",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Get Latest Email": {
+      "main": [
+        [
+          {
+            "node": "Summarize with Azure OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize with Azure OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Return Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "Outlook Email Summarizer",
+  "active": false,
+  "settings": {},
+  "tags": ["azure", "openai", "outlook", "graphapi", "summarizer"]
+}

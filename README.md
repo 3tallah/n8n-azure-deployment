@@ -5,52 +5,69 @@
 ## 📦 Contents
 - [Features](#-features)
 - [Quick Start](#-quick-start)
-- [Scripts](#-scripts)
+- [Script Overview](#-script-overview)
 - [Configuration](#-configuration)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 - [License](#-license)
 
 ## ✨ Features
-- **One-click deployment** of n8n to Azure App Service
-- **Automated Azure OpenAI integration** with retry logic
-- **Outlook OAuth2 setup** with proper permission scopes
-- **Persistent storage** configuration
-- **Visual guides** for each deployment step
+- **Single-command deployment** of n8n to Azure App Service
+- **Integrated Azure OpenAI setup** with retry logic
+- **Built-in Outlook 365 OAuth2 configuration**
+- **Automatic App Service and Storage provisioning**
+- **Smart logging and validations**
+- **Persistent configuration using App Settings**
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Azure account with contributor permissions
-- Azure CLI installed ([installation guide](https://docs.microsoft.com/cli/azure/install-azure-cli))
-- Bash shell (Linux/macOS/WSL)
+- Azure subscription with Contributor rights
+- Azure CLI installed ([install guide](https://learn.microsoft.com/cli/azure/install-azure-cli))
+- Bash shell (Linux/macOS/WSL or Git Bash)
 
-### Deployment
+### Deploy with One Command
 ```bash
 # Clone repository
 git clone https://github.com/3tallah/n8n-azure-deployment.git
 cd n8n-azure-deployment
 
-# Make scripts executable
-chmod +x *.sh
+# Make script executable
+chmod +x n8n_deployment_script.sh
 
-# Run main deployment
-./deploy-n8n-azure.sh
+# Run the full deployment
+./n8n_deployment_script.sh
+````
 
-# Configure Outlook integration
-./setup-outlook-oauth.sh
+> ✅ The script includes everything: resource group, storage, App Service, OpenAI service, app settings, Outlook OAuth2 support, and auto-restart.
+
+## 📜 Script Overview
+
+### `n8n_deployment_script.sh` - Complete Azure Deployment
+
+This single script performs:
+
+1. Azure login check
+2. Resource group creation
+3. Storage account provisioning
+4. App Service Plan and Web App deployment (Linux container with Docker)
+5. Configuration of required app settings (e.g., `WEBSITES_PORT`, `AZURE_STORAGE_CONNECTION_STRING`)
+6. Azure OpenAI resource creation with key and endpoint configuration
+7. Optional Outlook 365 OAuth2 setup (placeholder for integration)
+8. Web App restart and access summary
+
+
+## ⚙️ Configuration
+
+The script auto-generates most names using `$RANDOM`, but you can modify variables at the top of the script if needed:
+
+### Example Defaults
+
+```bash
+RESOURCE_GROUP="n8n-resources"
+LOCATION="eastus"
+DOCKER_IMAGE="docker.n8n.io/n8nio/n8n:latest"
 ```
-
-## 📜 Scripts
-
-### Main Deployment Script
-`deploy-n8n-azure.sh` - Handles:
-1. Resource group creation
-2. Storage account setup
-3. App Service configuration
-4. Azure OpenAI integration
-5. Environment variables setup
-
 
 ### Outlook Integration
 `setup-outlook-oauth.sh` - Creates:
@@ -59,53 +76,40 @@ chmod +x *.sh
 3. Client secret (valid 1 year)
 4. Admin consent URL
 
-
 ### Support Files
 - `workflow-examples/` - Sample n8n JSON workflows
 - `docs/` - Visual guides and troubleshooting
 
-## ⚙️ Configuration
+### Environment Settings Configured in Azure
 
-### Environment Variables
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `APP_NAME` | n8n application name | ❌ (auto-generated) |
-| `RESOURCE_GROUP` | Azure resource group | ❌ (default: n8n-resources) |
-| `N8N_CALLBACK_URL` | For Outlook OAuth2 | ✅ |
-
-### Customizing Deployment
-Edit `config.sh` to modify:
-```bash
-# Azure region
-LOCATION="eastus"
-
-# App Service SKU
-SKU="B1"
-
-# OpenAI model
-OPENAI_MODEL="text-davinci-003"
-```
+| Setting                           | Description                                      |
+| --------------------------------- | ------------------------------------------------ |
+| `WEBSITES_PORT`                   | Required port for n8n container (default `5678`) |
+| `AZURE_STORAGE_CONNECTION_STRING` | Used for persistent data                         |
+| `AZURE_OPENAI_API_KEY`            | Automatically retrieved                          |
+| `AZURE_OPENAI_ENDPOINT`           | Automatically configured                         |
 
 ## 🛠 Troubleshooting
 
-### Common Issues
-| Error | Solution |
-|-------|----------|
-| `ResourceNotFound` | Wait 2 minutes after app creation |
-| `PermissionDenied` | Run `az login` with admin account |
-| `ContainerNotStarting` | Verify `WEBSITES_PORT=5678` |
+| Problem               | Solution                                    |
+| --------------------- | ------------------------------------------- |
+| Azure CLI not found   | Install from official docs                  |
+| App doesn’t start     | Confirm container port is `5678`            |
+| OpenAI creation fails | Script retries 3 times by default           |
+| Missing permissions   | Ensure your Azure user has Contributor role |
 
 ### View Logs
+
 ```bash
-az webapp log tail --name <app-name> --resource-group n8n-resources
+az webapp log tail --name <app-name> --resource-group <resource-group>
 ```
 
-# Deployment Package Structure
+## 📁 Project Structure
+
 ```
+
 n8n-azure-deployment/
-├── deploy-n8n-azure.sh         # Main deployment script
-├── setup-outlook-oauth.sh      # Outlook OAuth2 setup
-├── config.sh                   # Configuration defaults
+├── n8n_deployment_script.sh    # Unified deployment script
 ├── LICENSE                     # MIT License
 ├── README.md                   # This file
 ├── workflow-examples/          # Sample n8n workflows
@@ -117,11 +121,11 @@ n8n-azure-deployment/
 ```
 
 ## 🔗 Additional Resources
-- [n8n Documentation](https://docs.n8n.io)
-- [Azure App Service Docs](https://docs.microsoft.com/azure/app-service)
-- [Microsoft Graph Permissions](https://learn.microsoft.com/graph/permissions-reference)
 
-
+* [n8n Docs](https://docs.n8n.io)
+* [Azure App Service](https://learn.microsoft.com/azure/app-service)
+* [Azure OpenAI](https://learn.microsoft.com/azure/cognitive-services/openai/)
+* [Microsoft Graph OAuth Permissions](https://learn.microsoft.com/graph/permissions-reference)
 
 ## 🤝 Contributing
 1. Fork the project
@@ -131,11 +135,14 @@ n8n-azure-deployment/
 5. Open a Pull Request
 
 ## 📄 License
-Distributed under the MIT License. See `LICENSE` for more information.
+
+Distributed under the MIT License. See `LICENSE` for full details.
 
 ## 👤 Author
-**Your Name**  
-- GitHub: [@3tallah](https://github.com/3tallah)
-- LinkedIn: [Mahmoud A. ATALLAH](https://www.linkedin.com/in/mahmoudatallah)
 
+**Mahmoud A. ATALLAH**
 
+* GitHub: [@3tallah](https://github.com/3tallah)
+* LinkedIn: [Mahmoud A. Atallah](https://www.linkedin.com/in/mahmoudatallah)
+
+```
