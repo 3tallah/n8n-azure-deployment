@@ -1,0 +1,25 @@
+{
+    "nodes": [
+      {
+        "parameters": {},
+        "name": "Microsoft Outlook",
+        "type": "microsoftOutlook",
+        "typeVersion": 1,
+        "position": [250, 300]
+      },
+      {
+        "parameters": {
+          "url": "={{ $env.AZURE_OPENAI_ENDPOINT }}/completions",
+          "options": {
+            "headers": {
+              "api-key": "={{ $env.AZURE_OPENAI_API_KEY }}"
+            }
+          }
+        },
+        "name": "Azure OpenAI",
+        "type": "httpRequest",
+        "typeVersion": 1,
+        "position": [450, 300]
+      }
+    ]
+  }
