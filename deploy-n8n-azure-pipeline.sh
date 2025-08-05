@@ -141,11 +141,12 @@ else
 fi
 
 # --- New Step: Mount File Share to Web App ---
-log "Mounting Azure File Share to Web App at /home..."
-MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource-group $RESOURCE_GROUP | grep -c "$FILE_SHARE_NAME")
+log "Mounting Azure File Share to Web App at /n8n..."
+MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource-group $RESOURCE_GROUP | grep -c "\"mountPath\": \"/n8n\"")
 if [ "$MOUNT_EXISTS" -gt 0 ]; then
-    warning "File share $FILE_SHARE_NAME is already mounted to the Web App. Skipping mount."
+    warning "A mount at /n8n already exists. Skipping mount."
 else
+    set -x  # Show command for debugging
     az webapp config storage-account add \
         --resource-group $RESOURCE_GROUP \
         --name $APP_NAME \
@@ -154,9 +155,10 @@ else
         --account-name $STORAGE_ACCOUNT \
         --share-name $FILE_SHARE_NAME \
         --access-key $STORAGE_KEY \
-        --mount-path /home \
+        --mount-path /n8n \
         --output none
-    success "File share $FILE_SHARE_NAME mounted to /home."
+    set +x
+    success "File share $FILE_SHARE_NAME mounted to /n8n."
 fi
 # --- End New Step ---
 
@@ -170,7 +172,7 @@ az webapp config appsettings set \
         N8N_RUNNERS_ENABLED=true \
         APP_SERVICE_STORAGE=true \
         AZURE_STORAGE_CONNECTION_STRING="$STORAGE_CONN" \
-        N8N_USER_FOLDER="/home/.n8n" \
+        N8N_USER_FOLDER="/n8n/.n8n" \
         DB_TYPE=sqlite \
         DB_SQLITE_VACUUM_ON_STARTUP=true \
     --output none
