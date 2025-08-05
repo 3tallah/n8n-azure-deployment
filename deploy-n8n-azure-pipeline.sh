@@ -74,15 +74,18 @@ else
 fi
 
 # Step 3: Create Storage Account
-log "Step 3/8: Creating storage account..."
+log "Step 3/8: Ensuring storage account exists..."
 log "Storage account name: $STORAGE_ACCOUNT"
-az storage account create \
-    --name $STORAGE_ACCOUNT \
-    --resource-group $RESOURCE_GROUP \
-    --sku Standard_LRS \
-    --output none
-
-success "Storage account created successfully"
+if az storage account show --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP &> /dev/null; then
+    warning "Storage account $STORAGE_ACCOUNT already exists. Reusing."
+else
+    az storage account create \
+        --name $STORAGE_ACCOUNT \
+        --resource-group $RESOURCE_GROUP \
+        --sku Standard_LRS \
+        --output none
+    success "Storage account $STORAGE_ACCOUNT created successfully"
+fi
 
 # --- New Step: Create Azure File Share for n8n persistent data ---
 FILE_SHARE_NAME="n8ndata"
@@ -98,7 +101,6 @@ else
     az storage share create --name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT --account-key $STORAGE_KEY --output none
     success "File share $FILE_SHARE_NAME created."
 fi
-
 # --- End New Step ---
 
 # Get storage connection string
@@ -110,32 +112,36 @@ STORAGE_CONN=$(az storage account show-connection-string \
 success "Storage connection string retrieved"
 
 # Step 4: Create App Service Plan
-log "Step 4/8: Creating App Service Plan..."
-az appservice plan create \
-    --name "${APP_NAME}-plan" \
-    --resource-group $RESOURCE_GROUP \
-    --is-linux \
-    --sku B1 \
-    --output none
-
-success "App Service Plan created with B1 tier"
+log "Step 4/8: Ensuring App Service Plan exists..."
+if az appservice plan show --name "${APP_NAME}-plan" --resource-group $RESOURCE_GROUP &> /dev/null; then
+    warning "App Service Plan ${APP_NAME}-plan already exists. Reusing."
+else
+    az appservice plan create \
+        --name "${APP_NAME}-plan" \
+        --resource-group $RESOURCE_GROUP \
+        --is-linux \
+        --sku B1 \
+        --output none
+    success "App Service Plan ${APP_NAME}-plan created with B1 tier"
+fi
 
 # Step 5: Create Web App
-log "Step 5/8: Creating Web App..."
-log "Deploying Docker image: $DOCKER_IMAGE"
-az webapp create \
-    --name $APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --plan "${APP_NAME}-plan" \
-    --container-image-name $DOCKER_IMAGE \
-    --output none
-
-success "Web App $APP_NAME created successfully"
+log "Step 5/8: Ensuring Web App exists..."
+if az webapp show --name $APP_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
+    warning "Web App $APP_NAME already exists. Reusing."
+else
+    log "Deploying Docker image: $DOCKER_IMAGE"
+    az webapp create \
+        --name $APP_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --plan "${APP_NAME}-plan" \
+        --container-image-name $DOCKER_IMAGE \
+        --output none
+    success "Web App $APP_NAME created successfully"
+fi
 
 # --- New Step: Mount File Share to Web App ---
 log "Mounting Azure File Share to Web App at /home..."
-
-# Check if the mount already exists
 MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource-group $RESOURCE_GROUP | grep -c "$FILE_SHARE_NAME")
 if [ "$MOUNT_EXISTS" -gt 0 ]; then
     warning "File share $FILE_SHARE_NAME is already mounted to the Web App. Skipping mount."
@@ -168,40 +174,40 @@ az webapp config appsettings set \
         DB_TYPE=sqlite \
         DB_SQLITE_VACUUM_ON_STARTUP=true \
     --output none
-
 success "Initial app settings configured"
 
 # Step 7: Create OpenAI Cognitive Service
-log "Step 7/8: Creating Azure OpenAI service..."
-log "OpenAI service name: $OPENAI_SERVICE_NAME"
-
-# Retry logic for OpenAI service creation
-RETRY_COUNT=0
-MAX_RETRIES=3
-
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-    log "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES to create OpenAI service..."
-    
-    if az cognitiveservices account create \
-        --name $OPENAI_SERVICE_NAME \
-        --resource-group $RESOURCE_GROUP \
-        --kind OpenAI \
-        --sku s0 \
-        --location $LOCATION \
-        --output none; then
-        success "OpenAI service created successfully"
-        break
-    else
-        RETRY_COUNT=$((RETRY_COUNT + 1))
-        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-            warning "Failed to create OpenAI service, retrying in 10 seconds..."
-            sleep 10
+log "Step 7/8: Ensuring Azure OpenAI service exists..."
+if az cognitiveservices account show --name $OPENAI_SERVICE_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
+    warning "OpenAI service $OPENAI_SERVICE_NAME already exists. Reusing."
+else
+    log "OpenAI service name: $OPENAI_SERVICE_NAME"
+    # Retry logic for OpenAI service creation
+    RETRY_COUNT=0
+    MAX_RETRIES=3
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        log "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES to create OpenAI service..."
+        if az cognitiveservices account create \
+            --name $OPENAI_SERVICE_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --kind OpenAI \
+            --sku s0 \
+            --location $LOCATION \
+            --output none; then
+            success "OpenAI service created successfully"
+            break
         else
-            error "Failed to create OpenAI service after $MAX_RETRIES attempts"
-            exit 1
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                warning "Failed to create OpenAI service, retrying in 10 seconds..."
+                sleep 10
+            else
+                error "Failed to create OpenAI service after $MAX_RETRIES attempts"
+                exit 1
+            fi
         fi
-    fi
-done
+    done
+fi
 
 # Get OpenAI credentials
 log "Retrieving OpenAI credentials..."
