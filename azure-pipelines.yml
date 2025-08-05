@@ -235,6 +235,7 @@ stages:
           Write-Host "   https://${{ variables.appName }}.azurewebsites.net" -ForegroundColor Yellow
           Write-Host ""
           Write-Host "🔧 Azure Portal Resources:" -ForegroundColor Cyan
-          Write-Host "   https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${{ variables.resourceGroupName }}" -ForegroundColor Blue
+          Write-Host "   https://portal.azure.com/#@/resource/subscriptions/*/resourceGroups/${{ variables.resourceGroupName }}" -ForegroundColor Blue
+          Write-Host "   (Replace * with your subscription ID)" -ForegroundColor Gray
           Write-Host ""
           Write-Host "✅ All stages completed successfully!" -ForegroundColor Green 
