@@ -1,0 +1,240 @@
+trigger:
+  - main
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Azure Configuration
+  resourceGroupName: 'n8n-resources'
+  location: 'eastus'
+  appName: 'n8n-app-$(Build.BuildId)'
+  storageAccountName: 'n8nstorage$(Build.BuildId)'
+  openAIServiceName: 'n8n-ai-$(Build.BuildId)'
+  
+  # Docker Configuration
+  dockerImage: 'docker.n8n.io/n8nio/n8n:latest'
+  
+  # Script Configuration
+  scriptPath: 'deploy-n8n-azure.sh'
+
+stages:
+- stage: Validate
+  displayName: 'Validate Environment'
+  jobs:
+  - job: ValidatePrerequisites
+    displayName: 'Check Prerequisites'
+    steps:
+    - task: AzureCLI@2
+      displayName: 'Check Azure CLI and Login'
+      inputs:
+        azureSubscription: 'Azure Subscription'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Checking Azure CLI version..."
+          az version
+          
+          echo "Checking Azure login status..."
+          if az account show &> /dev/null; then
+            echo "✅ Already logged into Azure"
+            az account show --query "name" -o tsv
+          else
+            echo "❌ Not logged into Azure"
+            exit 1
+          fi
+          
+          echo "Checking subscription permissions..."
+          az role assignment list --assignee $(az account show --query user.name -o tsv) --scope /subscriptions/$(az account show --query id -o tsv) --query "[?roleDefinitionName=='Contributor']" -o table
+
+- stage: Build
+  displayName: 'Build and Prepare'
+  dependsOn: Validate
+  jobs:
+  - job: PrepareDeployment
+    displayName: 'Prepare Deployment Script'
+    steps:
+    - checkout: self
+    
+              - task: CopyFiles@2
+            displayName: 'Copy Deployment Scripts'
+            inputs:
+              sourceFolder: '$(Build.SourcesDirectory)'
+              contents: |
+                deploy-n8n-azure.sh
+                deploy-n8n-azure-pipeline.sh
+              targetFolder: '$(Build.ArtifactStagingDirectory)'
+          
+          - task: Bash@3
+            displayName: 'Make Scripts Executable'
+            inputs:
+              targetType: 'inline'
+              script: |
+                chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure.sh
+                chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure-pipeline.sh
+                echo "Scripts made executable"
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Deployment Artifacts'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'deployment-scripts'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployN8N
+    displayName: 'Deploy n8n to Azure'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: deployment-scripts
+            
+          - task: AzureCLI@2
+            displayName: 'Deploy n8n using Pipeline Script'
+            inputs:
+              azureSubscription: 'Azure Subscription'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Set script variables for pipeline
+                export RESOURCE_GROUP="${{ variables.resourceGroupName }}"
+                export LOCATION="${{ variables.location }}"
+                export APP_NAME="${{ variables.appName }}"
+                export STORAGE_ACCOUNT="${{ variables.storageAccountName }}"
+                export OPENAI_SERVICE_NAME="${{ variables.openAIServiceName }}"
+                export DOCKER_IMAGE="${{ variables.dockerImage }}"
+                
+                echo "Starting n8n deployment with pipeline variables..."
+                echo "Resource Group: $RESOURCE_GROUP"
+                echo "App Name: $APP_NAME"
+                echo "Storage Account: $STORAGE_ACCOUNT"
+                echo "OpenAI Service: $OPENAI_SERVICE_NAME"
+                echo "Location: $LOCATION"
+                
+                # Run the pipeline-optimized deployment script
+                bash $(Pipeline.Workspace)/deployment-scripts/deploy-n8n-azure-pipeline.sh
+                
+                echo "Deployment completed successfully!"
+                
+          - task: PowerShell@2
+            displayName: 'Output Deployment Information'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Write-Host "==========================================" -ForegroundColor Green
+                Write-Host "🎉 n8n Deployment Complete!" -ForegroundColor Green
+                Write-Host "==========================================" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "Deployment Summary:" -ForegroundColor Cyan
+                Write-Host "  • Resource Group: ${{ variables.resourceGroupName }}" -ForegroundColor White
+                Write-Host "  • App Service: ${{ variables.appName }}" -ForegroundColor White
+                Write-Host "  • Storage Account: ${{ variables.storageAccountName }}" -ForegroundColor White
+                Write-Host "  • OpenAI Service: ${{ variables.openAIServiceName }}" -ForegroundColor White
+                Write-Host "  • Location: ${{ variables.location }}" -ForegroundColor White
+                Write-Host ""
+                Write-Host "🌐 Access your n8n instance at:" -ForegroundColor Green
+                Write-Host "   https://${{ variables.appName }}.azurewebsites.net" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host "📝 Note: It may take a few minutes for the application to fully start up." -ForegroundColor Cyan
+                Write-Host "🔧 You can monitor the deployment in the Azure Portal." -ForegroundColor Cyan
+
+- stage: Test
+  displayName: 'Post-Deployment Tests'
+  dependsOn: Deploy
+  condition: succeeded()
+  jobs:
+  - job: HealthCheck
+    displayName: 'Health Check'
+    steps:
+    - task: PowerShell@2
+      displayName: 'Wait for App to Start'
+      inputs:
+        targetType: 'inline'
+        script: |
+          $appUrl = "https://${{ variables.appName }}.azurewebsites.net"
+          $maxAttempts = 30
+          $attempt = 0
+          
+          Write-Host "Waiting for n8n application to start..."
+          
+          while ($attempt -lt $maxAttempts) {
+            try {
+              $response = Invoke-WebRequest -Uri $appUrl -Method Head -TimeoutSec 10
+              if ($response.StatusCode -eq 200) {
+                Write-Host "✅ Application is responding!" -ForegroundColor Green
+                break
+              }
+            }
+            catch {
+              Write-Host "Attempt $($attempt + 1)/$maxAttempts - Application not ready yet..." -ForegroundColor Yellow
+            }
+            
+            $attempt++
+            Start-Sleep -Seconds 10
+          }
+          
+          if ($attempt -eq $maxAttempts) {
+            Write-Host "❌ Application did not start within expected time" -ForegroundColor Red
+            exit 1
+          }
+    
+    - task: AzureCLI@2
+      displayName: 'Check Azure Resources'
+      inputs:
+        azureSubscription: 'Azure Subscription'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Checking deployed Azure resources..."
+          
+          # Check resource group
+          az group show --name "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          
+          # Check web app
+          az webapp show --name "${{ variables.appName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          
+          # Check storage account
+          az storage account show --name "${{ variables.storageAccountName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          
+          # Check OpenAI service
+          az cognitiveservices account show --name "${{ variables.openAIServiceName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          
+          echo "✅ All Azure resources are deployed successfully!"
+
+- stage: Notify
+  displayName: 'Deployment Notification'
+  dependsOn: Test
+  condition: succeeded()
+  jobs:
+  - job: SendNotification
+    displayName: 'Send Success Notification'
+    steps:
+    - task: PowerShell@2
+      displayName: 'Output Final Summary'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "==========================================" -ForegroundColor Green
+          Write-Host "🚀 n8n Azure Deployment Pipeline Complete!" -ForegroundColor Green
+          Write-Host "==========================================" -ForegroundColor Green
+          Write-Host ""
+          Write-Host "📋 Deployment Details:" -ForegroundColor Cyan
+          Write-Host "  • Pipeline Run ID: $(Build.BuildId)" -ForegroundColor White
+          Write-Host "  • Branch: $(Build.SourceBranch)" -ForegroundColor White
+          Write-Host "  • Commit: $(Build.SourceVersion)" -ForegroundColor White
+          Write-Host "  • Build Number: $(Build.BuildNumber)" -ForegroundColor White
+          Write-Host ""
+          Write-Host "🌐 Application URL:" -ForegroundColor Green
+          Write-Host "   https://${{ variables.appName }}.azurewebsites.net" -ForegroundColor Yellow
+          Write-Host ""
+          Write-Host "🔧 Azure Portal Resources:" -ForegroundColor Cyan
+          Write-Host "   https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${{ variables.resourceGroupName }}" -ForegroundColor Blue
+          Write-Host ""
+          Write-Host "✅ All stages completed successfully!" -ForegroundColor Green 
