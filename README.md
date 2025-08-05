@@ -14,10 +14,10 @@
 ## ✨ Features
 - **Single-command deployment** of n8n to Azure App Service
 - **Integrated Azure OpenAI setup** with retry logic
-- **Built-in Outlook 365 OAuth2 configuration**
 - **Automatic App Service and Storage provisioning**
 - **Smart logging and validations**
 - **Persistent configuration using App Settings**
+- **Delayed App Service restart** to ensure Azure File Share is properly mounted.
 
 ## 🚀 Quick Start
 
@@ -29,7 +29,7 @@
 ### Deploy with One Command
 ```bash
 # Clone repository
-git clone https://github.com/3tallah/n8n-azure-deployment.git
+git clone [https://github.com/3tallah/n8n-azure-deployment.git](https://github.com/3tallah/n8n-azure-deployment.git)
 cd n8n-azure-deployment
 
 # Make script executable
@@ -39,23 +39,23 @@ chmod +x deploy-n8n-azure-pipeline.sh
 bash deploy-n8n-azure-pipeline.sh
 ````
 
-> ✅ The script includes everything: resource group, storage, App Service, OpenAI service, app settings, Outlook OAuth2 support, and auto-restart.
+> ✅ The script includes everything: resource group, storage, App Service, OpenAI service, app settings, and auto-restart.
 
 ## 📜 Script Overview
 
-### `n8n_deployment_script.sh` - Complete Azure Deployment
+### `deploy-n8n-azure-pipeline.sh` - Complete Azure Deployment
 
 This single script performs:
 
-1. Azure login check
-2. Resource group creation
-3. Storage account provisioning
-4. App Service Plan and Web App deployment (Linux container with Docker)
-5. Configuration of required app settings (e.g., `WEBSITES_PORT`, `AZURE_STORAGE_CONNECTION_STRING`)
-6. Azure OpenAI resource creation with key and endpoint configuration
-7. Optional Outlook 365 OAuth2 setup (placeholder for integration)
-8. Web App restart and access summary
-
+1.  Azure login check
+2.  Resource group creation
+3.  Storage account and **File Share** provisioning
+4.  App Service Plan and Web App deployment (Linux container with Docker)
+5.  **Mounting the Azure File Share** to the web app
+6.  Configuration of required app settings
+7.  Azure OpenAI resource creation with key and endpoint configuration
+8.  Web App restart and a **delayed restart after 10 minutes** to ensure the file share is mounted correctly.
+9.  Access summary
 
 ## ⚙️ Configuration
 
@@ -69,34 +69,24 @@ LOCATION="eastus"
 DOCKER_IMAGE="docker.n8n.io/n8nio/n8n:latest"
 ```
 
-### Outlook Integration
-`setup-outlook-oauth.sh` - Creates:
-1. Azure AD app registration
-2. Outlook API permissions
-3. Client secret (valid 1 year)
-4. Admin consent URL
-
-### Support Files
-- `workflow-examples/` - Sample n8n JSON workflows
-- `docs/` - Visual guides and troubleshooting
-
 ### Environment Settings Configured in Azure
 
-| Setting                           | Description                                      |
+| Setting                           | Description                                      |
 | --------------------------------- | ------------------------------------------------ |
-| `WEBSITES_PORT`                   | Required port for n8n container (default `5678`) |
-| `AZURE_STORAGE_CONNECTION_STRING` | Used for persistent data                         |
-| `AZURE_OPENAI_API_KEY`            | Automatically retrieved                          |
-| `AZURE_OPENAI_ENDPOINT`           | Automatically configured                         |
+| `WEBSITES_PORT`                   | Required port for n8n container (default `5678`) |
+| `AZURE_STORAGE_CONNECTION_STRING` | Used for persistent data                         |
+| `AZURE_OPENAI_API_KEY`            | Automatically retrieved                          |
+| `AZURE_OPENAI_ENDPOINT`           | Automatically configured                         |
 
 ## 🛠 Troubleshooting
 
-| Problem               | Solution                                    |
+| Problem               | Solution                                    |
 | --------------------- | ------------------------------------------- |
-| Azure CLI not found   | Install from official docs                  |
-| App doesn’t start     | Confirm container port is `5678`            |
-| OpenAI creation fails | Script retries 3 times by default           |
-| Missing permissions   | Ensure your Azure user has Contributor role |
+| Azure CLI not found   | Install from official docs                  |
+| App doesn’t start     | Confirm container port is `5678`            |
+| OpenAI creation fails | Script retries 3 times by default           |
+| Missing permissions   | Ensure your Azure user has Contributor role |
+| App doesn’t find storage mount | The script includes a delayed restart to fix this. Check the pipeline logs for the "Delayed Restart" step to ensure it ran successfully. |
 
 ### View Logs
 
@@ -107,32 +97,29 @@ az webapp log tail --name <app-name> --resource-group <resource-group>
 ## 📁 Project Structure
 
 ```
-
 n8n-azure-deployment/
-├── n8n_deployment_script.sh    # Unified deployment script
-├── LICENSE                     # MIT License
-├── README.md                   # This file
-├── workflow-examples/          # Sample n8n workflows
-│   ├── email-summarizer.json   # Outlook→OpenAI→Slack
-│   └── ai-assistant.json       # ChatGPT integration
-└── docs/                       # Visual guides
-    ├── deployment-steps.md     # Screenshot guide
-    └── architecture.png        # System diagram
+├── deploy-n8n-azure-pipeline.sh    # Unified deployment script
+├── LICENSE                     # MIT License
+├── README.md                   # This file
+└── docs/                       # Visual guides
+    ├── deployment-steps.md     # Screenshot guide
+    └── architecture.png        # System diagram
 ```
 
 ## 🔗 Additional Resources
 
-* [n8n Docs](https://docs.n8n.io)
-* [Azure App Service](https://learn.microsoft.com/azure/app-service)
-* [Azure OpenAI](https://learn.microsoft.com/azure/cognitive-services/openai/)
-* [Microsoft Graph OAuth Permissions](https://learn.microsoft.com/graph/permissions-reference)
+  * [n8n Docs](https://docs.n8n.io)
+  * [Azure App Service](https://learn.microsoft.com/azure/app-service)
+  * [Azure OpenAI](https://learn.microsoft.com/azure/cognitive-services/openai/)
+  * [Microsoft Graph OAuth Permissions](https://learn.microsoft.com/graph/permissions-reference)
 
 ## 🤝 Contributing
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+
+1.  Fork the project
+2.  Create your feature branch (`git checkout -b feature/amazing-feature`)
+3.  Commit your changes (`git commit -m 'Add some amazing feature'`)
+4.  Push to the branch (`git push origin feature/amazing-feature`)
+5.  Open a Pull Request
 
 ## 📄 License
 
@@ -142,5 +129,5 @@ Distributed under the MIT License. See `LICENSE` for full details.
 
 **Mahmoud A. ATALLAH**
 
-* GitHub: [@3tallah](https://github.com/3tallah)
-* LinkedIn: [Mahmoud A. Atallah](https://www.linkedin.com/in/mahmoudatallah)
+  * GitHub: [@3tallah](https://github.com/3tallah)
+  * LinkedIn: [Mahmoud A. Atallah](https://www.linkedin.com/in/mahmoudatallah)
