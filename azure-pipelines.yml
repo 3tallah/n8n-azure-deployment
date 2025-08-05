@@ -154,6 +154,16 @@ stages:
     displayName: 'Health Check'
     steps:
     - task: PowerShell@2
+      displayName: 'Wait 10 minutes for app to start'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "⏳ Waiting 10 minutes for n8n application to fully start up..." -ForegroundColor Yellow
+          Write-Host "This gives the container time to initialize and n8n to be ready." -ForegroundColor Cyan
+          Start-Sleep -Seconds 600
+          Write-Host "✅ 10-minute wait completed. Starting health checks..." -ForegroundColor Green
+    
+    - task: PowerShell@2
       displayName: 'Wait for App to Start'
       inputs:
         targetType: 'inline'
