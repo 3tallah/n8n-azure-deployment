@@ -33,10 +33,10 @@ git clone https://github.com/3tallah/n8n-azure-deployment.git
 cd n8n-azure-deployment
 
 # Make script executable
-chmod +x n8n_deployment_script.sh
+chmod +x deploy-n8n-azure-pipeline.sh
 
 # Run the full deployment
-bash deploy-n8n-azure.sh
+bash deploy-n8n-azure-pipeline.sh
 ````
 
 > ✅ The script includes everything: resource group, storage, App Service, OpenAI service, app settings, Outlook OAuth2 support, and auto-restart.
