@@ -71,7 +71,7 @@ if [ -n "$EXISTING_STORAGE_ACCOUNT" ]; then
    STORAGE_ACCOUNT="$EXISTING_STORAGE_ACCOUNT"
    warning "Reusing existing storage account: $STORAGE_ACCOUNT"
 else
-   STORAGE_ACCOUNT="n8nstorage$RANDOM"
+   STORAGE_ACCOUNT="$STORAGE_ACCOUNT"
    log "No storage account found. Will create: $STORAGE_ACCOUNT"
 fi
 
@@ -91,7 +91,7 @@ if [ -n "$EXISTING_WEB_APP" ]; then
    APP_NAME="$EXISTING_WEB_APP"
    warning "Reusing existing web app: $APP_NAME"
 else
-   APP_NAME="n8n-app-$RANDOM"
+   APP_NAME="$APP_NAME"
    log "No web app found. Will create: $APP_NAME"
 fi
 
@@ -101,7 +101,7 @@ if [ -n "$EXISTING_OPENAI" ]; then
    OPENAI_SERVICE_NAME="$EXISTING_OPENAI"
    warning "Reusing existing OpenAI service: $OPENAI_SERVICE_NAME"
 else
-   OPENAI_SERVICE_NAME="n8n-ai-$RANDOM"
+   OPENAI_SERVICE_NAME="$OPENAI_SERVICE_NAME"
    log "No OpenAI service found. Will create: $OPENAI_SERVICE_NAME"
 fi
 
