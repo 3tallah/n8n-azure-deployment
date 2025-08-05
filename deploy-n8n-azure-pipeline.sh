@@ -53,6 +53,49 @@ log "  - Storage Account: $STORAGE_ACCOUNT"
 log "  - OpenAI Service: $OPENAI_SERVICE_NAME"
 log "  - Docker Image: $DOCKER_IMAGE"
 
+# Step 0: List resources in the resource group and pick existing ones if available
+log "Step 0: Checking for existing resources in resource group $RESOURCE_GROUP..."
+
+# Storage Account
+EXISTING_STORAGE_ACCOUNT=$(az storage account list --resource-group $RESOURCE_GROUP --query "[0].name" -o tsv)
+if [ -n "$EXISTING_STORAGE_ACCOUNT" ]; then
+    STORAGE_ACCOUNT="$EXISTING_STORAGE_ACCOUNT"
+    warning "Reusing existing storage account: $STORAGE_ACCOUNT"
+else
+    STORAGE_ACCOUNT="n8nstorage$RANDOM"
+    log "No storage account found. Will create: $STORAGE_ACCOUNT"
+fi
+
+# App Service Plan (Linux)
+EXISTING_APP_SERVICE_PLAN=$(az appservice plan list --resource-group $RESOURCE_GROUP --query "[?reserved==\`true\`][0].name" -o tsv)
+if [ -n "$EXISTING_APP_SERVICE_PLAN" ]; then
+    APP_SERVICE_PLAN="$EXISTING_APP_SERVICE_PLAN"
+    warning "Reusing existing Linux App Service Plan: $APP_SERVICE_PLAN"
+else
+    APP_SERVICE_PLAN="${APP_NAME}-plan"
+    log "No Linux App Service Plan found. Will create: $APP_SERVICE_PLAN"
+fi
+
+# Web App
+EXISTING_WEB_APP=$(az webapp list --resource-group $RESOURCE_GROUP --query "[0].name" -o tsv)
+if [ -n "$EXISTING_WEB_APP" ]; then
+    APP_NAME="$EXISTING_WEB_APP"
+    warning "Reusing existing web app: $APP_NAME"
+else
+    APP_NAME="n8n-app-$RANDOM"
+    log "No web app found. Will create: $APP_NAME"
+fi
+
+# OpenAI Cognitive Service
+EXISTING_OPENAI=$(az cognitiveservices account list --resource-group $RESOURCE_GROUP --query "[?kind=='OpenAI'][0].name" -o tsv)
+if [ -n "$EXISTING_OPENAI" ]; then
+    OPENAI_SERVICE_NAME="$EXISTING_OPENAI"
+    warning "Reusing existing OpenAI service: $OPENAI_SERVICE_NAME"
+else
+    OPENAI_SERVICE_NAME="n8n-ai-$RANDOM"
+    log "No OpenAI service found. Will create: $OPENAI_SERVICE_NAME"
+fi
+
 # Step 1: Login to Azure (handled by Azure Pipelines)
 log "Step 1/8: Checking Azure login status..."
 if az account show &> /dev/null; then
@@ -142,29 +185,24 @@ fi
 
 # --- New Step: Mount File Share to Web App ---
 log "Mounting Azure File Share to Web App at /n8n..."
-MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource-group $RESOURCE_GROUP | grep -c "\"mountPath\": \"/n8n\"")
-if [ "$MOUNT_EXISTS" -gt 0 ]; then
-    warning "A mount at /n8n already exists. Skipping mount."
+set +e
+az webapp config storage-account add \
+    --resource-group $RESOURCE_GROUP \
+    --name $APP_NAME \
+    --custom-id n8nfileshare \
+    --storage-type AzureFiles \
+    --account-name $STORAGE_ACCOUNT \
+    --share-name $FILE_SHARE_NAME \
+    --access-key $STORAGE_KEY \
+    --mount-path /n8n \
+    --output none
+MOUNT_RESULT=$?
+set -e
+if [ $MOUNT_RESULT -ne 0 ]; then
+    error "Failed to mount Azure File Share to /n8n. Exiting."
+    exit 1
 else
-    set +e
-    az webapp config storage-account add \
-        --resource-group $RESOURCE_GROUP \
-        --name $APP_NAME \
-        --custom-id n8nfileshare \
-        --storage-type AzureFiles \
-        --account-name $STORAGE_ACCOUNT \
-        --share-name $FILE_SHARE_NAME \
-        --access-key $STORAGE_KEY \
-        --mount-path /n8n \
-        --output none
-    MOUNT_RESULT=$?
-    set -e
-    if [ $MOUNT_RESULT -ne 0 ]; then
-        error "Failed to mount Azure File Share to /n8n. Exiting."
-        exit 1
-    else
-        success "File share $FILE_SHARE_NAME mounted to /n8n."
-    fi
+    success "File share $FILE_SHARE_NAME mounted to /n8n."
 fi
 
 log "Mount step completed, proceeding to app settings..."
