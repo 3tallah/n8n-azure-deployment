@@ -146,7 +146,8 @@ MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource
 if [ "$MOUNT_EXISTS" -gt 0 ]; then
     warning "A mount at /n8n already exists. Skipping mount."
 else
-    if ! az webapp config storage-account add \
+    set +e
+    az webapp config storage-account add \
         --resource-group $RESOURCE_GROUP \
         --name $APP_NAME \
         --custom-id n8nfileshare \
@@ -155,7 +156,10 @@ else
         --share-name $FILE_SHARE_NAME \
         --access-key $STORAGE_KEY \
         --mount-path /n8n \
-        --output none; then
+        --output none
+    MOUNT_RESULT=$?
+    set -e
+    if [ $MOUNT_RESULT -ne 0 ]; then
         error "Failed to mount Azure File Share to /n8n. Exiting."
         exit 1
     else
