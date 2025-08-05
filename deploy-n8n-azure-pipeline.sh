@@ -84,6 +84,23 @@ az storage account create \
 
 success "Storage account created successfully"
 
+# --- New Step: Create Azure File Share for n8n persistent data ---
+FILE_SHARE_NAME="n8ndata"
+log "Creating Azure File Share '$FILE_SHARE_NAME' for persistent n8n data..."
+
+# Get storage account key
+STORAGE_KEY=$(az storage account keys list --resource-group $RESOURCE_GROUP --account-name $STORAGE_ACCOUNT --query [0].value -o tsv)
+
+# Check if file share exists
+if az storage share exists --name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT --account-key $STORAGE_KEY --query exists -o tsv | grep -q true; then
+    warning "File share $FILE_SHARE_NAME already exists. Skipping creation."
+else
+    az storage share create --name $FILE_SHARE_NAME --account-name $STORAGE_ACCOUNT --account-key $STORAGE_KEY --output none
+    success "File share $FILE_SHARE_NAME created."
+fi
+
+# --- End New Step ---
+
 # Get storage connection string
 log "Retrieving storage connection string..."
 STORAGE_CONN=$(az storage account show-connection-string \
@@ -115,6 +132,28 @@ az webapp create \
 
 success "Web App $APP_NAME created successfully"
 
+# --- New Step: Mount File Share to Web App ---
+log "Mounting Azure File Share to Web App at /home..."
+
+# Check if the mount already exists
+MOUNT_EXISTS=$(az webapp config storage-account list --name $APP_NAME --resource-group $RESOURCE_GROUP | grep -c "$FILE_SHARE_NAME")
+if [ "$MOUNT_EXISTS" -gt 0 ]; then
+    warning "File share $FILE_SHARE_NAME is already mounted to the Web App. Skipping mount."
+else
+    az webapp config storage-account add \
+        --resource-group $RESOURCE_GROUP \
+        --name $APP_NAME \
+        --custom-id n8nfileshare \
+        --storage-type AzureFiles \
+        --account-name $STORAGE_ACCOUNT \
+        --share-name $FILE_SHARE_NAME \
+        --access-key $STORAGE_KEY \
+        --mount-path /home \
+        --output none
+    success "File share $FILE_SHARE_NAME mounted to /home."
+fi
+# --- End New Step ---
+
 # Step 6: Configure App Settings
 log "Step 6/8: Configuring initial app settings..."
 az webapp config appsettings set \
@@ -125,6 +164,9 @@ az webapp config appsettings set \
         N8N_RUNNERS_ENABLED=true \
         APP_SERVICE_STORAGE=true \
         AZURE_STORAGE_CONNECTION_STRING="$STORAGE_CONN" \
+        N8N_USER_FOLDER="/home/.n8n" \
+        DB_TYPE=sqlite \
+        DB_SQLITE_VACUUM_ON_STARTUP=true \
     --output none
 
 success "Initial app settings configured"
