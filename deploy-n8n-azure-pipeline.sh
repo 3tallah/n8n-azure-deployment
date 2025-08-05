@@ -53,6 +53,15 @@ log "  - Storage Account: $STORAGE_ACCOUNT"
 log "  - OpenAI Service: $OPENAI_SERVICE_NAME"
 log "  - Docker Image: $DOCKER_IMAGE"
 
+# Step 1: Create Resource Group (moved up)
+log "Step 1/8: Creating resource group..."
+if az group show --name $RESOURCE_GROUP &> /dev/null; then
+    warning "Resource group $RESOURCE_GROUP already exists"
+else
+    az group create --name $RESOURCE_GROUP --location $LOCATION --output none
+    success "Resource group $RESOURCE_GROUP created in $LOCATION"
+fi
+
 # Step 0: List resources in the resource group and pick existing ones if available
 log "Step 0: Checking for existing resources in resource group $RESOURCE_GROUP..."
 
@@ -107,17 +116,8 @@ else
     exit 1
 fi
 
-# Step 2: Create Resource Group
-log "Step 2/8: Creating resource group..."
-if az group show --name $RESOURCE_GROUP &> /dev/null; then
-    warning "Resource group $RESOURCE_GROUP already exists"
-else
-    az group create --name $RESOURCE_GROUP --location $LOCATION --output none
-    success "Resource group $RESOURCE_GROUP created in $LOCATION"
-fi
-
-# Step 3: Create Storage Account
-log "Step 3/8: Ensuring storage account exists..."
+# Step 2: Create Storage Account
+log "Step 2/8: Ensuring storage account exists..."
 log "Storage account name: $STORAGE_ACCOUNT"
 if az storage account show --name $STORAGE_ACCOUNT --resource-group $RESOURCE_GROUP &> /dev/null; then
     warning "Storage account $STORAGE_ACCOUNT already exists. Reusing."
@@ -154,8 +154,8 @@ STORAGE_CONN=$(az storage account show-connection-string \
     --query connectionString -o tsv)
 success "Storage connection string retrieved"
 
-# Step 4: Create App Service Plan
-log "Step 4/8: Ensuring App Service Plan exists..."
+# Step 3: Create App Service Plan
+log "Step 3/8: Ensuring App Service Plan exists..."
 if az appservice plan show --name "${APP_NAME}-plan" --resource-group $RESOURCE_GROUP &> /dev/null; then
     warning "App Service Plan ${APP_NAME}-plan already exists. Reusing."
 else
@@ -168,8 +168,8 @@ else
     success "App Service Plan ${APP_NAME}-plan created with B1 tier"
 fi
 
-# Step 5: Create Web App
-log "Step 5/8: Ensuring Web App exists..."
+# Step 4: Create Web App
+log "Step 4/8: Ensuring Web App exists..."
 if az webapp show --name $APP_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
     warning "Web App $APP_NAME already exists. Reusing."
 else
@@ -184,7 +184,7 @@ else
 fi
 
 # --- New Step: Mount File Share to Web App ---
-log "Mounting Azure File Share to Web App at /n8n..."
+log "Step 5/8: Mounting Azure File Share to Web App at /n8n..."
 set +e
 az webapp config storage-account add \
     --resource-group $RESOURCE_GROUP \
