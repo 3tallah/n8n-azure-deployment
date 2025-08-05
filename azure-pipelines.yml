@@ -57,23 +57,23 @@ stages:
     steps:
     - checkout: self
     
-              - task: CopyFiles@2
-            displayName: 'Copy Deployment Scripts'
-            inputs:
-              sourceFolder: '$(Build.SourcesDirectory)'
-              contents: |
-                deploy-n8n-azure.sh
-                deploy-n8n-azure-pipeline.sh
-              targetFolder: '$(Build.ArtifactStagingDirectory)'
-          
-          - task: Bash@3
-            displayName: 'Make Scripts Executable'
-            inputs:
-              targetType: 'inline'
-              script: |
-                chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure.sh
-                chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure-pipeline.sh
-                echo "Scripts made executable"
+    - task: CopyFiles@2
+      displayName: 'Copy Deployment Scripts'
+      inputs:
+        sourceFolder: '$(Build.SourcesDirectory)'
+        contents: |
+          deploy-n8n-azure.sh
+          deploy-n8n-azure-pipeline.sh
+        targetFolder: '$(Build.ArtifactStagingDirectory)'
+    
+    - task: Bash@3
+      displayName: 'Make Scripts Executable'
+      inputs:
+        targetType: 'inline'
+        script: |
+          chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure.sh
+          chmod +x $(Build.ArtifactStagingDirectory)/deploy-n8n-azure-pipeline.sh
+          echo "Scripts made executable"
     
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Deployment Artifacts'
