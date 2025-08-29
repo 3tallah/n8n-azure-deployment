@@ -7,17 +7,27 @@ pool:
 
 variables:
   # Azure Configuration
-  resourceGroupName: 'n8n-resources'
-  location: 'eastus'
-  appName: 'n8n-app-$(Build.BuildId)'
-  storageAccountName: 'n8nstorage$(Build.BuildId)'
-  openAIServiceName: 'n8n-ai-$(Build.BuildId)'
+  - name: resourceGroupName
+    value: 'n8n-resources'
+  - name: location
+    value: 'eastus'
+  - name: appName
+    value: 'n8n-app-$(Build.BuildId)'
+  - name: storageAccountName
+    value: 'n8nstorage$(Build.BuildId)'
+  - name: openAIServiceName
+    value: 'n8n-ai-$(Build.BuildId)'
   
   # Docker Configuration
-  dockerImage: 'docker.n8n.io/n8nio/n8n:latest'
+  - name: dockerImage
+    value: 'docker.n8n.io/n8nio/n8n:latest'
   
   # Script Configuration
-  scriptPath: 'deploy-n8n-azure.sh'
+  - name: scriptPath
+    value: 'deploy-n8n-azure.sh'
+  
+  # Overwrite variables with group
+  - group: ${{variables['Build.DefinitionName']}}
 
 stages:
 - stage: Validate
@@ -104,12 +114,12 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 # Set script variables for pipeline
-                export RESOURCE_GROUP="${{ variables.resourceGroupName }}"
-                export LOCATION="${{ variables.location }}"
-                export APP_NAME="${{ variables.appName }}"
-                export STORAGE_ACCOUNT="${{ variables.storageAccountName }}"
-                export OPENAI_SERVICE_NAME="${{ variables.openAIServiceName }}"
-                export DOCKER_IMAGE="${{ variables.dockerImage }}"
+                export RESOURCE_GROUP="$(resourceGroupName)"
+                export LOCATION="$(location)"
+                export APP_NAME="$(appName)"
+                export STORAGE_ACCOUNT="$(storageAccountName)"
+                export OPENAI_SERVICE_NAME="$(openAIServiceName)"
+                export DOCKER_IMAGE="$(dockerImage)"
                 
                 echo "Starting n8n deployment with pipeline variables..."
                 echo "Resource Group: $RESOURCE_GROUP"
@@ -133,14 +143,14 @@ stages:
                 Write-Host "==========================================" -ForegroundColor Green
                 Write-Host ""
                 Write-Host "Deployment Summary:" -ForegroundColor Cyan
-                Write-Host "  • Resource Group: ${{ variables.resourceGroupName }}" -ForegroundColor White
-                Write-Host "  • App Service: ${{ variables.appName }}" -ForegroundColor White
-                Write-Host "  • Storage Account: ${{ variables.storageAccountName }}" -ForegroundColor White
-                Write-Host "  • OpenAI Service: ${{ variables.openAIServiceName }}" -ForegroundColor White
-                Write-Host "  • Location: ${{ variables.location }}" -ForegroundColor White
+                Write-Host "  • Resource Group: $(resourceGroupName)" -ForegroundColor White
+                Write-Host "  • App Service: $(appName)" -ForegroundColor White
+                Write-Host "  • Storage Account: $(storageAccountName)" -ForegroundColor White
+                Write-Host "  • OpenAI Service: $(openAIServiceName)" -ForegroundColor White
+                Write-Host "  • Location: $(location)" -ForegroundColor White
                 Write-Host ""
                 Write-Host "🌐 Access your n8n instance at:" -ForegroundColor Green
-                Write-Host "   https://${{ variables.appName }}.azurewebsites.net" -ForegroundColor Yellow
+                Write-Host "   https://$(appName).azurewebsites.net" -ForegroundColor Yellow
                 Write-Host ""
                 Write-Host "📝 Note: It may take a few minutes for the application to fully start up." -ForegroundColor Cyan
                 Write-Host "🔧 You can monitor the deployment in the Azure Portal." -ForegroundColor Cyan
@@ -168,7 +178,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          $appUrl = "https://${{ variables.appName }}.azurewebsites.net"
+          $appUrl = "https://$(appName).azurewebsites.net"
           $maxAttempts = 30
           $attempt = 0
           
@@ -205,16 +215,16 @@ stages:
           echo "Checking deployed Azure resources..."
           
           # Check resource group
-          az group show --name "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          az group show --name "$(resourceGroupName)" --query "name" -o tsv
           
           # Check web app
-          az webapp show --name "${{ variables.appName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          az webapp show --name "$(appName)" --resource-group "$(resourceGroupName)" --query "name" -o tsv
           
           # Check storage account
-          az storage account show --name "${{ variables.storageAccountName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          az storage account show --name "$(storageAccountName)" --resource-group "$(resourceGroupName)" --query "name" -o tsv
           
           # Check OpenAI service
-          az cognitiveservices account show --name "${{ variables.openAIServiceName }}" --resource-group "${{ variables.resourceGroupName }}" --query "name" -o tsv
+          az cognitiveservices account show --name "$(openAIServiceName)" --resource-group "$(resourceGroupName)" --query "name" -o tsv
           
           echo "✅ All Azure resources are deployed successfully!"
 
@@ -242,10 +252,10 @@ stages:
           Write-Host "  • Build Number: $(Build.BuildNumber)" -ForegroundColor White
           Write-Host ""
           Write-Host "🌐 Application URL:" -ForegroundColor Green
-          Write-Host "   https://${{ variables.appName }}.azurewebsites.net" -ForegroundColor Yellow
+          Write-Host "   https://$(appName).azurewebsites.net" -ForegroundColor Yellow
           Write-Host ""
           Write-Host "🔧 Azure Portal Resources:" -ForegroundColor Cyan
-          Write-Host "   https://portal.azure.com/#@/resource/subscriptions/*/resourceGroups/${{ variables.resourceGroupName }}" -ForegroundColor Blue
+          Write-Host "   https://portal.azure.com/#@/resource/subscriptions/*/resourceGroups/$(resourceGroupName)" -ForegroundColor Blue
           Write-Host "   (Replace * with your subscription ID)" -ForegroundColor Gray
           Write-Host ""
           Write-Host "✅ All stages completed successfully!" -ForegroundColor Green 

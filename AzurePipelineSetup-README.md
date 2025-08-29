@@ -101,6 +101,8 @@ You can modify these in the pipeline YAML or set them as pipeline variables:
 2.  Click **Variables**
 3.  Add/modify variables as needed
 
+You can also define variables inside the **Variable Group** in the **Pipelines** → **Library**. Use the same name for the group as the pipeline name.
+
 ## 🔐 Security Considerations
 
 ### Service Principal Permissions
