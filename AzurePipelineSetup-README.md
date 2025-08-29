@@ -91,6 +91,7 @@ variables:
   storageAccountName: 'n8nstorage$(Build.BuildId)'
   openAIServiceName: 'n8n-ai-$(Build.BuildId)'
   dockerImage: 'docker.n8n.io/n8nio/n8n:latest'
+  webhookUrl: ''
 ````
 
 ### Customizing Variables
@@ -100,6 +101,8 @@ You can modify these in the pipeline YAML or set them as pipeline variables:
 1.  Go to **Pipelines** → **Edit Pipeline**
 2.  Click **Variables**
 3.  Add/modify variables as needed
+
+You can also define variables inside the **Variable Group** in the **Pipelines** → **Library**. Use the same name for the group as the pipeline name.
 
 ## 🔐 Security Considerations
 
@@ -120,6 +123,7 @@ The pipeline script accepts these environment variables:
   - `STORAGE_ACCOUNT` - Storage account name
   - `OPENAI_SERVICE_NAME` - OpenAI service name
   - `DOCKER_IMAGE` - n8n Docker image
+  - `WEBHOOK_URL` - Webhook URL, if empty use app service url 
 
 ## 📊 Monitoring and Troubleshooting
 
