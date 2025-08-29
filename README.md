@@ -77,6 +77,7 @@ DOCKER_IMAGE="docker.n8n.io/n8nio/n8n:latest"
 | `AZURE_STORAGE_CONNECTION_STRING` | Used for persistent data                         |
 | `AZURE_OPENAI_API_KEY`            | Automatically retrieved                          |
 | `AZURE_OPENAI_ENDPOINT`           | Automatically configured                         |
+| `WEBHOOK_URL`                     | If not provided as parameter use App Service Url | 
 
 ## 🛠 Troubleshooting
 

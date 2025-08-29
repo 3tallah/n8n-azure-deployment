@@ -10,6 +10,7 @@ set -e  # Exit on any error
 RESOURCE_GROUP="${RESOURCE_GROUP:-n8n-resources}"
 LOCATION="${LOCATION:-eastus}"
 APP_NAME="${APP_NAME:-n8n-app-$RANDOM}"
+WEBHOOK_URL="${WEBHOOK_URL:=https://$APP_NAME.azurewebsites.net/}"
 DOCKER_IMAGE="${DOCKER_IMAGE:-docker.n8n.io/n8nio/n8n:latest}"
 STORAGE_ACCOUNT="${STORAGE_ACCOUNT:-n8nstorage$RANDOM}"
 OPENAI_SERVICE_NAME="${OPENAI_SERVICE_NAME:-n8n-ai-$RANDOM}"
@@ -52,6 +53,7 @@ log "  - App Name: $APP_NAME"
 log "  - Storage Account: $STORAGE_ACCOUNT"
 log "  - OpenAI Service: $OPENAI_SERVICE_NAME"
 log "  - Docker Image: $DOCKER_IMAGE"
+log "  - Webhook URL: $WEBHOOK_URL"
 
 # Step 1: Create Resource Group (moved up)
 log "Step 1/8: Creating resource group..."
@@ -221,6 +223,7 @@ az webapp config appsettings set \
       N8N_USER_FOLDER="/n8n/.n8n" \
       DB_TYPE=sqlite \
       DB_SQLITE_VACUUM_ON_STARTUP=true \
+	  WEBHOOK_URL="$WEBHOOK_URL" \
    --output none
 success "Initial app settings configured"
 

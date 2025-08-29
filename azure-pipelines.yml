@@ -17,6 +17,8 @@ variables:
     value: 'n8nstorage$(Build.BuildId)'
   - name: openAIServiceName
     value: 'n8n-ai-$(Build.BuildId)'
+  - name: webhookUrl
+    value: ''
   
   # Docker Configuration
   - name: dockerImage
@@ -120,6 +122,7 @@ stages:
                 export STORAGE_ACCOUNT="$(storageAccountName)"
                 export OPENAI_SERVICE_NAME="$(openAIServiceName)"
                 export DOCKER_IMAGE="$(dockerImage)"
+                export WEBHOOK_URL="$(webhookUrl)"
                 
                 echo "Starting n8n deployment with pipeline variables..."
                 echo "Resource Group: $RESOURCE_GROUP"
@@ -127,6 +130,7 @@ stages:
                 echo "Storage Account: $STORAGE_ACCOUNT"
                 echo "OpenAI Service: $OPENAI_SERVICE_NAME"
                 echo "Location: $LOCATION"
+                echo "Webhook Url: $WEBHOOK_URL"
                 
                 # Run the pipeline-optimized deployment script
                 bash $(Pipeline.Workspace)/deployment-scripts/deploy-n8n-azure-pipeline.sh
