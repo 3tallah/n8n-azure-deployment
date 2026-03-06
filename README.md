@@ -1,6 +1,6 @@
 # n8n Azure Deployment Toolkit
 
-[![n8n + Azure + OpenAI Integration](https://3tallah.com/wp-content/uploads/2025/07/Deploy-n8n-on-Azure-with-OpenAI-Azure-App-Services-Step-by-Step-591x394.png)](https://3tallah.com/ultimate-guide-deploy-n8n-on-azure-with-openai-azure-app-services-step-by-step/)
+[![n8n + Azure + OpenAI Integration](https://3tallah.com/wp-content/uploads/2025/07/Deploy-n8n-on-Azure-with-OpenAI-Azure-App-Services-Step-by-Step-591x394.png)](https://3tallah.com/one-click-deployment-of-n8n-on-azure-with-automation-scripts-step-by-step/)
 
 ## 📦 Contents
 - [Features](#-features)
